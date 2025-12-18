@@ -63,13 +63,14 @@ async def _collect_news_links(query: str, limit: int, max_pages: int = 3) -> Tup
             if news_count > 0:
                 log_debug("Clicking News tab")
                 await news_tab.first.click(timeout=15000)
-                await page.wait_for_timeout(2000)
+                await page.wait_for_load_state("domcontentloaded")
+                await page.wait_for_timeout(500)
                 log_debug(f"Post-click URL: {page.url}")
             else:
                 log_debug("News tab not found; attempting direct tbm=nws URL")
                 search_url = f"https://www.google.com/search?q={query}&tbm=nws"
                 await page.goto(search_url, wait_until="domcontentloaded")
-                await page.wait_for_timeout(2000)
+                await page.wait_for_timeout(500)
                 log_debug(f"Loaded fallback News URL: {page.url}")
 
             urls: List[str] = []
@@ -99,11 +100,17 @@ async def _collect_news_links(query: str, limit: int, max_pages: int = 3) -> Tup
                 if page_idx > 0:
                     paged_url = f"https://www.google.com/search?q={query}&tbm=nws&start={page_idx*10}"
                     await page.goto(paged_url, wait_until="domcontentloaded")
-                    await page.wait_for_timeout(2000)
+                    await page.wait_for_timeout(500)
                     log_debug(f"Loaded page {page_idx+1}: {page.url}")
 
                 links = page.locator("a[href]")
-                count = await links.count()
+                try:
+                    count = await links.count()
+                except Exception as nav_exc:  # handle execution context destroyed
+                    log_debug(f"Retrying after navigation/context change: {nav_exc}")
+                    await page.wait_for_load_state("domcontentloaded")
+                    await page.wait_for_timeout(300)
+                    count = await links.count()
                 log_debug(f"Page {page_idx+1}: total hrefs on page: {count}")
 
                 for idx in range(count):
