@@ -34,7 +34,15 @@ async def _collect_news_links(query: str, limit: int, max_pages: int = 3) -> Tup
         logger.info(msg)
         debug.append(msg)
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True, args=["--no-sandbox"])
+        browser = await p.chromium.launch(
+            headless=True,
+            args=[
+                "--no-sandbox",
+                "--disable-setuid-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-gpu",
+            ]
+        )
         context = await browser.new_context(user_agent=USER_AGENT, viewport={"width": 1280, "height": 900})
         page: Page = await context.new_page()
 
