@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: wnewsurl
+    env: docker
+    plan: free
+    healthCheckPath: /_stcore/health
+    envVars:
+      - key: PLAYWRIGHT_BROWSERS_PATH
+        value: /ms-playwright
